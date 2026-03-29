@@ -1,0 +1,448 @@
+<html lang="en" vid="0"><head vid="1">
+    <meta charset="UTF-8" vid="2">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" vid="3">
+    <title vid="4">Digital Stratigraphy // Site: GC-1996</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" vid="5">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" vid="6">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;600&amp;family=Playfair+Display:ital,wght@0,400;1,400&amp;display=swap" rel="stylesheet" vid="7">
+    <style vid="8">
+        :root {
+            --paper: #c2b9a7;
+            --soil-deep: #2a2824;
+            --soil-mid: #5e5448;
+            --ink: #33312d;
+            --accent: #8b7d6b;
+            --grid-line: rgba(51, 49, 45, 0.15);
+            --neon-blue: #00f2ff;
+            --neon-pink: #ff00ff;
+        }
+
+        * {
+            box-sizing: border-box;
+            cursor: crosshair;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            background-color: var(--paper);
+            color: var(--ink);
+            font-family: 'IBM+Plex+Mono', monospace;
+            height: 100vh;
+            overflow: hidden;
+            text-transform: lowercase;
+        }
+
+        
+        .grain-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 1000;
+            opacity: 0.08;
+            background: url('https://www.transparenttextures.com/patterns/stardust.png');
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 280px 1fr 320px;
+            height: 100vh;
+            border: 12px solid var(--paper);
+        }
+
+        
+        .sidebar-left {
+            border-right: 0.5px solid var(--ink);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(180deg, var(--paper) 0%, #b3a894 100%);
+        }
+
+        .header-block {
+            margin-bottom: 40px;
+        }
+
+        .header-block h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.8rem;
+            font-style: italic;
+            margin: 0;
+            line-height: 1;
+        }
+
+        .specimen-label {
+            font-size: 10px;
+            letter-spacing: 2px;
+            border-bottom: 0.5px solid var(--ink);
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+
+        .stratigraphy-map {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            position: relative;
+        }
+
+        .soil-layer {
+            flex: 1;
+            background: var(--soil-mid);
+            border: 0.5px solid rgba(0,0,0,0.1);
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .soil-layer::after {
+            content: attr(data-year);
+            position: absolute;
+            right: -10px;
+            top: 50%;
+            transform: translateY(-50%) rotate(90deg);
+            font-size: 9px;
+            color: var(--ink);
+        }
+
+        .soil-layer.active {
+            background: var(--soil-deep);
+            flex: 1.5;
+        }
+
+        .soil-layer.active::before {
+            content: '◄ CURRENT DEPTH';
+            position: absolute;
+            left: -80px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 8px;
+            font-weight: bold;
+        }
+
+        
+        .excavation-site {
+            background: #e0d9cc;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            grid-template-rows: repeat(12, 1fr);
+            width: 100%;
+            height: 100%;
+            border: 0.5px solid var(--ink);
+            background-color: var(--soil-deep);
+            position: relative;
+        }
+
+        .cell {
+            border: 0.2px solid rgba(255,255,255,0.05);
+            position: relative;
+            background-color: var(--soil-deep);
+            transition: background-color 0.8s ease;
+        }
+
+        .cell.revealed {
+            background-color: transparent !important;
+        }
+
+        
+        .artifact-layer {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            background: #000;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            padding: 20px;
+            gap: 20px;
+        }
+
+        .fossil {
+            border: 1px dashed #444;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        
+        .sidebar-right {
+            border-left: 0.5px solid var(--ink);
+            padding: 20px;
+            background: var(--paper);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tool-bench {
+            margin-bottom: 30px;
+        }
+
+        .tool {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 8px;
+            border: 0.5px solid var(--ink);
+            background: transparent;
+            text-align: left;
+            font-family: inherit;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.2s;
+        }
+
+        .tool:hover, .tool.active {
+            background: var(--ink);
+            color: var(--paper);
+        }
+
+        .tool span { font-size: 10px; opacity: 0.6; }
+
+        .analysis-panel {
+            flex-grow: 1;
+            border-top: 2px solid var(--ink);
+            padding-top: 20px;
+        }
+
+        .discovery-feed {
+            font-size: 11px;
+            line-height: 1.6;
+        }
+
+        .feed-item {
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 0.5px dashed var(--accent);
+        }
+
+        .feed-item .time { opacity: 0.5; margin-right: 5px; }
+
+        
+        .retro-gif {
+            width: 60px;
+            height: 60px;
+            image-rendering: pixelated;
+        }
+
+        .under-construction {
+            background: yellow;
+            color: black;
+            font-family: "Comic Sans MS", cursive;
+            padding: 5px;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .marquee-artifact {
+            white-space: nowrap;
+            color: var(--neon-blue);
+            font-size: 12px;
+            animation: scroll 5s linear infinite;
+        }
+
+        @keyframes scroll {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+
+        .coord-overlay {
+            position: absolute;
+            font-size: 8px;
+            bottom: 5px;
+            right: 5px;
+            opacity: 0.4;
+        }
+
+        
+        .strikethrough {
+            text-decoration: line-through;
+            opacity: 0.4;
+        }
+
+        .plus-mark {
+            position: absolute;
+            width: 10px; height: 10px;
+        }
+        .plus-mark::before, .plus-mark::after {
+            content: ''; position: absolute; background: var(--ink);
+        }
+        .plus-mark::before { width: 100%; height: 0.5px; top: 50%; }
+        .plus-mark::after { height: 100%; width: 0.5px; left: 50%; }
+
+    </style>
+</head>
+<body vid="9">
+
+    <div class="grain-overlay" vid="10"></div>
+
+    <div class="main-container" vid="11">
+        
+        <aside class="sidebar-left" vid="12">
+            <div class="header-block" vid="13">
+                <div class="specimen-label" vid="14">archive_reference // 09-X</div>
+                <h1 vid="15">the digital <br vid="16">archaeologist</h1>
+            </div>
+
+            <div class="stratigraphy-map" vid="17">
+                <div class="soil-layer" data-year="2004" style="height: 10%" vid="18"></div>
+                <div class="soil-layer" data-year="2001" style="height: 15%" vid="19"></div>
+                <div class="soil-layer active" data-year="1998" style="height: 25%" vid="20"></div>
+                <div class="soil-layer" data-year="1996" style="height: 30%" vid="21"></div>
+                <div class="soil-layer" data-year="1994" style="height: 20%" vid="22"></div>
+                
+                <div style="margin-top: 20px; font-size: 10px;" vid="23">
+                    <p vid="24">&gt; atmospheric pressure: 1013hpa</p>
+                    <p vid="25">&gt; bit_decay_rate: 0.04%/yr</p>
+                    <p class="strikethrough" vid="26">&gt; total_recovery: complete</p>
+                </div>
+            </div>
+        </aside>
+
+        
+        <main class="excavation-site" vid="27">
+            <div class="plus-mark" style="top: 10px; left: 10px;" vid="28"></div>
+            <div class="plus-mark" style="top: 10px; right: 10px;" vid="29"></div>
+            <div class="plus-mark" style="bottom: 10px; left: 10px;" vid="30"></div>
+            <div class="plus-mark" style="bottom: 10px; right: 10px;" vid="31"></div>
+
+            <div class="artifact-layer" id="artifactLayer" vid="32">
+                
+            </div>
+
+            <div class="grid-container" id="gridContainer" vid="33">
+                
+            </div>
+        </main>
+
+        
+        <aside class="sidebar-right" vid="34">
+            <div class="tool-bench" vid="35">
+                <div class="specimen-label" vid="36">excavation_tools</div>
+                <button class="tool active" vid="37">precision brush <span vid="38">0.2mm</span></button>
+                <button class="tool" vid="39">ultrasonic trowel <span vid="40">low freq</span></button>
+                <button class="tool" vid="41">packet sniffer <span vid="42">archival</span></button>
+            </div>
+
+            <div class="analysis-panel" vid="43">
+                <div class="specimen-label" vid="44">site_log</div>
+                <div class="discovery-feed" id="discoveryFeed" vid="45">
+                    <div class="feed-item" vid="46">
+                        <span class="time" vid="47">09:42</span>
+                        init excavation at depth 4.2m. soil composition: silicon-heavy silt.
+                    </div>
+                    <div class="feed-item" vid="48">
+                        <span class="time" vid="49">10:15</span>
+                        faint signal detected. frequency matches netscape 2.0 headers.
+                    </div>
+                </div>
+            </div>
+
+            <div style="font-size: 9px; opacity: 0.4; margin-top: auto;" vid="50">
+                all artifacts are property of the <br vid="51">
+                central bureau of internet history.
+            </div>
+        </aside>
+    </div>
+
+    <script vid="52">
+        const grid = document.getElementById('gridContainer');
+        const artifactLayer = document.getElementById('artifactLayer');
+        const feed = document.getElementById('discoveryFeed');
+        
+        
+        const artifacts = [
+            { type: 'gif', content: 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3NueHA3YnR6NWR5Nmt0aW15bDR3M2p6bXh6ZzZ6ZzZ6ZzZ6ZzZ6JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/3o7TKMGpxx6X7aN0cM/giphy.gif' },
+            { type: 'text', content: 'WELCOME TO MY GEOCITIES PAGE' },
+            { type: 'badge', content: 'BEST VIEWED IN NETSCAPE' },
+            { type: 'construction', content: 'UNDER CONSTRUCTION' },
+            { type: 'gif', content: 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOXM2bnA3YnR6NWR5Nmt0aW15bDR3M2p6bXh6ZzZ6ZzZ6ZzZ6ZzZ6JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/l41lTfuxV37a909iM/giphy.gif' },
+            { type: 'counter', content: 'VISITOR COUNT: 000421' },
+            { type: 'marquee', content: '+++ HACK THE PLANET +++' }
+        ];
+
+        
+        for (let i = 0; i < 144; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            
+            
+            const variance = Math.floor(Math.random() * 20);
+            cell.style.backgroundColor = `rgba(42, 40, 36, ${0.95 + (variance/100)})`;
+
+            cell.addEventListener('mouseover', (e) => {
+                if (!cell.classList.contains('revealed')) {
+                    cell.classList.add('revealed');
+                    checkDiscovery();
+                }
+            });
+
+            grid.appendChild(cell);
+        }
+
+        
+        function populateArtifacts() {
+            for (let i = 0; i < 16; i++) {
+                const fossil = document.createElement('div');
+                fossil.className = 'fossil';
+                
+                const art = artifacts[Math.floor(Math.random() * artifacts.length)];
+                
+                if (art.type === 'gif') {
+                    fossil.innerHTML = `<img src="${art.content}" class="retro-gif">`;
+                } else if (art.type === 'construction') {
+                    fossil.innerHTML = `<div class="under-construction">${art.content}</div>`;
+                } else if (art.type === 'marquee') {
+                    fossil.innerHTML = `<div class="marquee-artifact">${art.content}</div>`;
+                } else {
+                    fossil.innerHTML = `<div style="color:#0f0; font-size:9px; text-align:center;">${art.content}</div>`;
+                }
+                
+                artifactLayer.appendChild(fossil);
+            }
+        }
+
+        let discoveryCount = 0;
+        function checkDiscovery() {
+            discoveryCount++;
+            if (discoveryCount % 30 === 0) {
+                const item = document.createElement('div');
+                item.className = 'feed-item';
+                const now = new Date();
+                const timestamp = `${now.getHours()}:${now.getMinutes()}`;
+                const phrases = [
+                    "calcium-encrusted 8-bit sprite identified.",
+                    "detected traces of a .mid background loop.",
+                    "uncovered a 'best viewed in 800x600' badge.",
+                    "significant data-pocket found: fanfiction site.",
+                    "archaic 'dancing baby' gif fragment retrieved."
+                ];
+                item.innerHTML = `<span class="time">${timestamp}</span> ${phrases[Math.floor(Math.random()*phrases.length)]}`;
+                feed.prepend(item);
+            }
+        }
+
+        populateArtifacts();
+
+        
+        document.querySelectorAll('.tool').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tool').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
+
+    </script>
+
+</body></html>
